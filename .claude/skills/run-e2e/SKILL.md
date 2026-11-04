@@ -13,14 +13,26 @@ with the webhook as a sidecar, creates Services, and checks the records.
 | `E2E_MODE=fake` (default) | fake API pod in the cluster (`test/e2e/fakehostinger`) | nothing | CI, every PR |
 | `E2E_MODE=real` | developers.hostinger.com and a real zone | `HOSTINGER_API_TOKEN`, `E2E_ZONE` | maintainers, locally, before a release |
 
+| Cluster | How | When |
+|---|---|---|
+| kind | `make e2e-images`, `kind load ...`, `make e2e` | CI always; local default |
+| remote k3s | `make e2e-k3s` (`test/e2e/k3s.sh`, needs `K3S_HOST` in `.env`) | started by hand, when the user wants the run off their machine. Never in CI. |
+
 **Never put a Hostinger token into GitHub.** CI must stay on the fake.
 
-## Steps
+## Steps on a remote k3s server
+
+`make e2e-k3s` does everything: builds the images, copies them over SSH,
+opens an SSH tunnel to the API, runs `run.sh`, and cleans up the tunnel and
+the copied images. Add `E2E_MODE=real E2E_ZONE=<zone>` for the real API.
+Run it from a shell that has docker (on Windows: WSL). Never touch other
+namespaces on that server.
+
+## Steps on kind
 
 1. Build both images: `make e2e-images`
 2. Make them available to the cluster:
    - kind: `kind load docker-image external-dns-hostinger-webhook:e2e fake-hostinger:e2e`
-   - k3s over ssh: `docker save external-dns-hostinger-webhook:e2e fake-hostinger:e2e | ssh root@HOST k3s ctr -n k8s.io images import -`
 3. Run:
    - fake: `make e2e`
    - real: ask the user which zone to use if `E2E_ZONE` is not set (never

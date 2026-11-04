@@ -35,7 +35,11 @@ make fmt     # gofmt -s
 make build
 make e2e-images && make e2e   # needs a cluster; uses the fake Hostinger API
 E2E_MODE=real make e2e        # real Hostinger; needs HOSTINGER_API_TOKEN and E2E_ZONE (local only)
+make e2e-k3s                  # same test on a remote k3s server (K3S_HOST in .env); started by hand, never in CI
 ```
+
+CI always runs the end-to-end test on kind. `make e2e-k3s` is for people
+who want the run off their own machine.
 
 Run `make test` and `make lint` before you say a change is done.
 
