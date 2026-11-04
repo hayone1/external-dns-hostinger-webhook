@@ -1,0 +1,41 @@
+# Helm values for the end-to-end test. run.sh adds a second values file with
+# the image, the webhook environment (API token and address), the
+# domain filter, the owner ID and the namespace to watch.
+provider:
+  name: webhook
+  webhook:
+    image:
+      repository: external-dns-hostinger-webhook
+      tag: e2e
+      pullPolicy: IfNotPresent
+    livenessProbe:
+      httpGet: { path: /healthz, port: http-webhook }
+    readinessProbe:
+      httpGet: { path: /readyz, port: http-webhook }
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities: { drop: ["ALL"] }
+    resources:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { memory: 128Mi }
+
+# run.sh adds --namespace=<test namespace> so external-dns only reads
+# Services from the test namespace. The chart's "namespaced: true" mode is
+# not used: the service source also needs to list nodes, which a namespaced
+# Role cannot allow.
+namespaced: false
+sources: [service]
+policy: sync
+registry: txt
+txtPrefix: "extdns-%{record_type}."
+interval: 10s
+triggerLoopOnEvent: true
+logLevel: debug
+extraArgs:
+  - --txt-wildcard-replacement=wildcard
+  - --webhook-provider-read-timeout=30s
+  - --webhook-provider-write-timeout=60s

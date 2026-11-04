@@ -1,0 +1,6 @@
+# zizmor settings: https://docs.zizmor.sh/configuration/
+rules:
+  # "./.github/workflows/x.yml" is the documented way to call a workflow in
+  # the same repository and works with every runner.
+  self-repository:
+    disable: true

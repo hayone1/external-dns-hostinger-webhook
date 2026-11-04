@@ -1,0 +1,5 @@
+# Default reviewers for every change.
+* @hayone1
+
+# Workflows and release settings need a maintainer review.
+/.github/ @hayone1

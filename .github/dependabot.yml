@@ -1,0 +1,48 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "deps(go)"
+    groups:
+      kubernetes:
+        patterns: ["k8s.io/*", "sigs.k8s.io/*"]
+      go-dependencies:
+        patterns: ["*"]
+        exclude-patterns: ["k8s.io/*", "sigs.k8s.io/*"]
+    # Wait a few days before taking a new version. Most bad releases are
+    # pulled within that time.
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "deps(actions)"
+    groups:
+      github-actions:
+        patterns: ["*"]
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "deps(docker)"
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: docker
+    directory: /test/e2e/fakehostinger
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "deps(docker)"
+    cooldown:
+      default-days: 7

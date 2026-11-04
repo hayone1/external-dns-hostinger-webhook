@@ -1,0 +1,6 @@
+# Keep LF line endings in the repo so shell scripts and YAML work everywhere.
+* text=auto eol=lf
+*.sh text eol=lf
+*.go text eol=lf
+*.png binary
+*.jpg binary

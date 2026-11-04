@@ -1,0 +1,301 @@
+name: Release
+
+# Push a tag like v0.1.0 (or v0.2.0-rc.1 for a pre-release) on main to
+# publish a new image. See docs/releasing.md.
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  DOCKERHUB_IMAGE: docker.io/hayone/external-dns-hostinger-webhook
+  GHCR_IMAGE: ghcr.io/hayone1/external-dns-hostinger-webhook
+
+jobs:
+  test:
+    name: Test before release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Tag must be on main
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+            echo "::error::release tags must point at a commit on main"; exit 1; }
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false # never reuse caches when building a release
+      - run: go test -race -count=1 ./...
+
+  e2e:
+    name: End-to-end test before release
+    needs: test
+    permissions:
+      contents: read
+    # Runs against the fake Hostinger API; it needs no secrets.
+    uses: ./.github/workflows/e2e.yml
+
+  image:
+    name: Build, sign and push to GHCR
+    needs: [test, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write # push to GHCR
+      id-token: write # keyless cosign signing and attestations
+      attestations: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.meta.outputs.version }}
+      tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Log in to GHCR
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image tags and labels
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.GHCR_IMAGE }}
+          flavor: latest=auto
+          tags: |
+            type=semver,pattern={{version}}
+            type=ref,event=tag
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref_name, 'v0.') }}
+            type=sha,format=long
+          labels: |
+            org.opencontainers.image.title=external-dns-hostinger-webhook
+            org.opencontainers.image.description=ExternalDNS webhook provider for Hostinger DNS
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.documentation=https://github.com/hayone1/external-dns-hostinger-webhook#readme
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            COMMIT=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+          # No build cache for releases: every release is built from scratch.
+          no-cache: true
+
+      - name: Sign with cosign (keyless)
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign sign --yes "${GHCR_IMAGE}@${DIGEST}"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.GHCR_IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+  # Copies the exact same image (same digest, SBOM and provenance) to Docker
+  # Hub. It is a separate job so a Docker Hub problem never blocks GHCR, and
+  # it can be re-run on its own after fixing the Docker Hub secrets.
+  dockerhub:
+    name: Copy to Docker Hub
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Log in to GHCR
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy image
+        env:
+          DIGEST: ${{ needs.image.outputs.digest }}
+          TAGS: ${{ needs.image.outputs.tags }}
+        run: |
+          set -euo pipefail
+          args=()
+          while read -r tag; do
+            [ -n "$tag" ] && args+=(-t "${DOCKERHUB_IMAGE}:${tag##*:}")
+          done <<< "$TAGS"
+          docker buildx imagetools create "${args[@]}" "${GHCR_IMAGE}@${DIGEST}"
+          copied=$(docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:${args[1]##*:}" --format '{{json .Manifest.Digest}}' | tr -d '"')
+          [ "$copied" = "$DIGEST" ] || { echo "::error::digest changed while copying ($copied != $DIGEST)"; exit 1; }
+      - name: Sign with cosign (keyless)
+        env:
+          DIGEST: ${{ needs.image.outputs.digest }}
+        run: cosign sign --yes "${DOCKERHUB_IMAGE}@${DIGEST}"
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: index.docker.io/hayone/external-dns-hostinger-webhook
+          subject-digest: ${{ needs.image.outputs.digest }}
+          push-to-registry: true
+
+  scan:
+    name: Scan published image
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - name: Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.GHCR_IMAGE }}@${{ needs.image.outputs.digest }}
+          format: sarif
+          output: trivy.sarif
+          ignore-unfixed: true
+      - uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-image
+
+  github-release:
+    name: GitHub release
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.image.outputs.version }}
+          DIGEST: ${{ needs.image.outputs.digest }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+          cat > notes.md <<EOF
+          ## Images
+
+          | Registry | Image |
+          |---|---|
+          | Docker Hub | \`${DOCKERHUB_IMAGE}:${VERSION}\` |
+          | GitHub | \`${GHCR_IMAGE}:${VERSION}\` |
+
+          Digest: \`${DIGEST}\` (same image on both registries, for \`linux/amd64\` and \`linux/arm64\`).
+
+          ## Check the signature
+
+          \`\`\`sh
+          cosign verify ${GHCR_IMAGE}@${DIGEST} \\
+            --certificate-identity-regexp '^https://github.com/${REPO}/.github/workflows/release.yml@refs/tags/' \\
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          \`\`\`
+
+          See the [install guide](https://github.com/${REPO}/blob/main/docs/deployment.md) to get started.
+          EOF
+          # shellcheck disable=SC2086
+          gh release create "$TAG" --repo "$REPO" --title "$TAG" --notes-file notes.md --generate-notes --verify-tag $prerelease
+
+  # Optional. Pushing images only needs a Read & Write token, but changing the
+  # Docker Hub page needs Read, Write & Delete (Read & Write gets 403
+  # "insufficient scope"). Add such a token as the secret
+  # DOCKERHUB_DESCRIPTION_TOKEN of the "release" environment to keep the page
+  # in sync; without it this job is skipped with a notice.
+  # The job only borrows the environment's secrets. "deployment: false" keeps it
+  # out of the deployment history, so only the image push counts as a deployment.
+  dockerhub-description:
+    name: Docker Hub description
+    needs: dockerhub
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    environment:
+      name: release
+      deployment: false
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - name: Check for a description token
+        id: token
+        env:
+          TOKEN: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::DOCKERHUB_DESCRIPTION_TOKEN is not set, so the Docker Hub page was not updated"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.token.outputs.present == 'true'
+        with:
+          persist-credentials: false
+      - uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
+        if: steps.token.outputs.present == 'true'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
+          repository: hayone/external-dns-hostinger-webhook
+          short-description: ExternalDNS webhook for Hostinger DNS. Makes Kubernetes keep your Hostinger DNS records up to date.
+          readme-filepath: ./docs/dockerhub.md
+          enable-url-completion: true

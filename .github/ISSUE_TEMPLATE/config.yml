@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/hayone1/external-dns-hostinger-webhook/security/advisories/new
+    about: Please report security problems privately, not in a public issue.
+  - name: Ask a question
+    url: https://github.com/hayone1/external-dns-hostinger-webhook/discussions
+    about: Not sure if it is a bug? Ask in Discussions first.
+  - name: external-dns documentation
+    url: https://kubernetes-sigs.github.io/external-dns/
+    about: Questions about external-dns itself (sources, annotations, flags).

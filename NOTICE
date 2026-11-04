@@ -1,0 +1,12 @@
+external-dns-hostinger-webhook
+Copyright 2026 Boluwatife Morawo and contributors
+
+This product includes software developed at
+https://github.com/hayone1/external-dns-hostinger-webhook
+
+Licensed under the Apache License, Version 2.0. If you copy, change or
+share this software, keep this NOTICE file (or its text) with it, as
+section 4(d) of the license asks.
+
+This product uses ExternalDNS (https://github.com/kubernetes-sigs/external-dns),
+Copyright The Kubernetes Authors, licensed under the Apache License 2.0.

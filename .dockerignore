@@ -1,0 +1,9 @@
+# Only send what the build needs. Everything else stays out of the
+# build context, so secrets can never end up in an image layer.
+*
+!go.mod
+!go.sum
+!cmd/
+!internal/
+internal/**/*_test.go
+internal/hostinger/hostingertest/

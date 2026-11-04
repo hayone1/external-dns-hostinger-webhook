@@ -1,0 +1,87 @@
+# ---------------------------------------------------------------
+# Secrets and local credentials. Never commit these.
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.env
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.kdbx
+*.gpg
+*.asc
+!cosign.pub
+id_rsa*
+id_ed25519*
+*.ppk
+.netrc
+.npmrc
+.pypirc
+.docker/
+.hostinger*.yaml
+**/secrets/
+*secret*.yaml
+*secret*.yml
+!deploy/**/secret.example.yaml
+kubeconfig
+*.kubeconfig
+.kube/
+credentials.json
+credentials.yaml
+credentials.yml
+*.tfvars
+*.tfstate
+*.tfstate.*
+
+# Local tool and editor settings that can hold tokens.
+.mcp.json
+.claude/settings.local.json
+.claude/*.local.*
+.vscode/
+.idea/
+*.code-workspace
+
+# Personal notes and debug scratch files.
+.notes/
+_debug/
+scratch/
+tmp/
+
+# ---------------------------------------------------------------
+# Build and test output
+# ---------------------------------------------------------------
+/bin/
+/dist/
+/build/
+/out/
+/webhook
+/webhook.exe
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.*
+cover.out
+*.prof
+*.pprof
+*.sarif
+sbom*.json
+*.spdx.json
+*.cdx.json
+
+# Go workspace files are per developer.
+go.work
+go.work.sum
+
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~

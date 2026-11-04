@@ -1,0 +1,72 @@
+# Example values for the official external-dns Helm chart
+# (https://kubernetes-sigs.github.io/external-dns/) that run this webhook
+# as a sidecar.
+#
+#   helm repo add external-dns https://kubernetes-sigs.github.io/external-dns/
+#   helm upgrade --install external-dns external-dns/external-dns \
+#     --namespace external-dns --create-namespace -f values.yaml
+#
+# Change every line marked CHANGE ME.
+
+provider:
+  name: webhook
+  webhook:
+    image:
+      repository: ghcr.io/hayone1/external-dns-hostinger-webhook # or docker.io/hayone/external-dns-hostinger-webhook
+      tag: "0.1.0" # CHANGE ME: pin the version you tested (no "v")
+    env:
+      - name: HOSTINGER_API_TOKEN
+        valueFrom: { secretKeyRef: { name: hostinger-credentials, key: api-token } }
+      # Same as domainFilters below. The webhook then only reads the zones
+      # it needs, which saves API calls. A domain registered somewhere else
+      # but using Hostinger DNS must be listed here.
+      - name: DOMAIN_FILTER
+        value: example.com # CHANGE ME
+    livenessProbe:
+      httpGet: { path: /healthz, port: http-webhook }
+    readinessProbe:
+      httpGet: { path: /readyz, port: http-webhook }
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities: { drop: ["ALL"] }
+      seccompProfile: { type: RuntimeDefault }
+    resources:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { memory: 128Mi }
+
+domainFilters: ["example.com"] # CHANGE ME
+
+# "sync" also deletes records when you delete the Kubernetes object.
+# Use "upsert-only" if you never want external-dns to delete anything.
+policy: sync
+
+registry: txt
+txtOwnerId: my-cluster # CHANGE ME: a name that is unique per cluster
+
+# Puts ownership records at extdns-a.www.example.com instead of
+# a-www.example.com. The dot at the end matters: without it, the record for
+# the bare domain (example.com) would be a-example.com, which is outside
+# your zone, and external-dns could never clean it up.
+txtPrefix: "extdns-%{record_type}."
+
+extraArgs:
+  # Hostinger does not allow "*" in the middle of a name, so the ownership
+  # record of *.example.com becomes extdns-a.wildcard.example.com.
+  - --txt-wildcard-replacement=wildcard
+  # Hostinger allows 90 API requests per minute, so the webhook sends about
+  # one per second. Give it more time than the 5s/10s defaults.
+  - --webhook-provider-read-timeout=30s
+  - --webhook-provider-write-timeout=60s
+
+sources:
+  - service
+  - ingress
+
+# Each loop costs about two API requests per zone. Once a minute is plenty,
+# and leaves room for your other Hostinger tools, which share the same
+# 90-requests-per-minute budget.
+interval: 1m
