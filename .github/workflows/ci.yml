@@ -149,6 +149,23 @@ jobs:
           ignore-unfixed: true
           severity: HIGH,CRITICAL
 
+  base-images:
+    name: Base images
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Check digest pins and signatures
+        run: hack/verify-base-images.sh
+
   workflows:
     name: Workflow security
     runs-on: ubuntu-latest
@@ -193,7 +210,7 @@ jobs:
   ci-passed:
     name: CI passed
     if: always()
-    needs: [lint, test, vulncheck, image, workflows, dependency-review]
+    needs: [lint, test, vulncheck, image, base-images, workflows, dependency-review]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}

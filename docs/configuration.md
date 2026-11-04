@@ -36,9 +36,14 @@ works with the domain `example.com`, and only touches names that end in
 `app.example.com`.
 
 Hostinger has no "list my DNS zones" call, so the webhook uses your domain
-list (the portfolio) to find zones. A domain that is **registered somewhere
-else** but uses Hostinger DNS is not in that list. Put its name in
-`DOMAIN_FILTER` and the webhook uses it as a zone too.
+list (the portfolio) to find zones. It skips domains that are not
+**active** (expired, suspended, waiting for setup), because their records
+are not served. Two cases need `DOMAIN_FILTER`:
+
+- a domain that is **registered somewhere else** but uses Hostinger DNS. It
+  is not in your domain list. Put its name in `DOMAIN_FILTER` and the
+  webhook uses it as a zone too.
+- an inactive domain you still want to manage. Name it in `DOMAIN_FILTER`.
 
 Use the same domains here as in external-dns's `--domain-filter`
 (`domainFilters` in Helm). external-dns also filters, but setting it on the

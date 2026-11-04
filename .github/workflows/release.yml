@@ -184,6 +184,25 @@ jobs:
           subject-digest: ${{ needs.image.outputs.digest }}
           push-to-registry: true
 
+  # SLSA Build Level 3 provenance, made by the isolated SLSA generator and
+  # pushed next to the GHCR image. Check it with slsa-verifier (see
+  # docs/deployment.md). The generator must be referenced by tag, not by
+  # SHA: it checks its own ref to prove which builder made the provenance.
+  provenance:
+    name: SLSA provenance
+    needs: image
+    permissions:
+      actions: read # read the workflow run
+      id-token: write # keyless signing
+      packages: write # push the provenance to GHCR
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0 # zizmor: ignore[unpinned-uses]
+    with:
+      image: ghcr.io/hayone1/external-dns-hostinger-webhook
+      digest: ${{ needs.image.outputs.digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
   scan:
     name: Scan published image
     needs: image
@@ -219,6 +238,21 @@ jobs:
       - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Values file with the image pinned by digest
+        env:
+          VERSION: ${{ needs.image.outputs.version }}
+          DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          # "0.2.0@sha256:..." works as the chart's image tag: the tag is for
+          # people, the digest is what Kubernetes pulls.
+          sed -E "s|^(      tag: ).*$|\1\"${VERSION}@${DIGEST}\" # this release, pinned by digest|" \
+            deploy/helm/values.yaml > external-dns-values.yaml
+          [ "$(grep -c "tag: \"${VERSION}@${DIGEST}\"" external-dns-values.yaml)" = 1 ] ||
+            { echo "::error::could not pin the image in the values file"; exit 1; }
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -248,10 +282,23 @@ jobs:
             --certificate-oidc-issuer https://token.actions.githubusercontent.com
           \`\`\`
 
-          See the [install guide](https://github.com/${REPO}/blob/main/docs/deployment.md) to get started.
+          The image also has SLSA Build Level 3 provenance. Check it with
+          [slsa-verifier](https://github.com/slsa-framework/slsa-verifier):
+
+          \`\`\`sh
+          slsa-verifier verify-image ${GHCR_IMAGE}@${DIGEST} \\
+            --source-uri github.com/${REPO} --source-tag ${TAG}
+          \`\`\`
+
+          ## Install
+
+          \`external-dns-values.yaml\` below is the example Helm values file with
+          this image pinned by digest. Download it, set your domain and cluster
+          name, and follow the [install guide](https://github.com/${REPO}/blob/main/docs/deployment.md).
           EOF
           # shellcheck disable=SC2086
-          gh release create "$TAG" --repo "$REPO" --title "$TAG" --notes-file notes.md --generate-notes --verify-tag $prerelease
+          gh release create "$TAG" external-dns-values.yaml --repo "$REPO" --title "$TAG" \
+            --notes-file notes.md --generate-notes --verify-tag $prerelease
 
   # Optional. Pushing images only needs a Read & Write token, but changing the
   # Docker Hub page needs Read, Write & Delete (Read & Write gets 403

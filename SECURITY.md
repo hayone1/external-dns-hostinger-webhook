@@ -36,7 +36,10 @@ Not security problems (open a normal issue instead):
 
 - Images are built by GitHub Actions only, never on a laptop.
 - Every image is signed with [cosign](https://github.com/sigstore/cosign)
-  (keyless) and has a signed build provenance and SBOM.
+  (keyless) and has a signed build provenance and SBOM. From v0.2.0 on it
+  also has SLSA Build Level 3 provenance from the isolated SLSA generator.
+- Base images are pinned by digest, and CI checks the distroless image's
+  signature.
 - Every image is scanned with [Trivy](https://github.com/aquasecurity/trivy).
 - The image has no shell, runs as a non-root user and works with a read-only file system.
 - All GitHub Actions are pinned to a commit SHA and updated by Dependabot.

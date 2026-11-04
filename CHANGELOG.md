@@ -11,6 +11,21 @@ All notable changes are listed here. The format follows
 - `make e2e-k3s` (`test/e2e/k3s.sh`) runs the end-to-end test on a remote
   k3s server over SSH, for maintainers who want the run off their own
   machine. CI keeps using kind.
+- Releases have SLSA Build Level 3 provenance and ship
+  `external-dns-values.yaml` with the image pinned by digest.
+- The example values file lists the Gateway API sources.
+- Weekly "Upstream watch" workflow: opens an issue when Hostinger's API or
+  the external-dns chart changes, and scans the newest image.
+- Dependabot patch, minor and digest updates merge on their own once CI
+  passes.
+- CI checks that base images are pinned by digest and that the distroless
+  image is signed.
+
+### Changed
+
+- Domains that are not active in the Hostinger account (expired, suspended,
+  waiting for setup) are skipped, which saves API calls. Name one in
+  `DOMAIN_FILTER` to manage it anyway.
 
 ## [0.1.0] - 2026-11-04
 

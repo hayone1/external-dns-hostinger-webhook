@@ -24,6 +24,7 @@ API calls. Health and metrics are on `0.0.0.0:8080`.
 | `test/integration` | Real external-dns planner + TXT registry + webhook client against the fake API |
 | `test/e2e` | Real cluster test (`run.sh`); `fakehostinger/` is the fake API image it runs in the cluster |
 | `deploy/` | Example Helm values and Secret |
+| `hack/` | `hostinger-api-snapshot.sh` + `hostinger-api.json` (API drift check), `external-dns-chart.version` (tested chart), `verify-base-images.sh` |
 | `docs/` | User and maintainer docs |
 
 ## Commands
@@ -100,6 +101,10 @@ Run `make test` and `make lint` before you say a change is done.
 - Hostinger's name servers (`ns1/ns2.dns-parking.com`) cache answers for the
   record's TTL. New names show at once; changes take up to the TTL.
 - external-dns v0.24's TXT registry cannot name ownership records for CAA.
+- NS below the apex and SOA cannot be written (HTTP 422). Do not add NS support.
+- Two writes to one zone at the same moment can lose one while both answer
+  200. Never parallelize writes.
+- Only `active` portfolio domains are zones, plus every plain `DOMAIN_FILTER` entry.
 
 ## Skills
 

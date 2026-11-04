@@ -1,0 +1,36 @@
+name: Dependabot auto-merge
+
+# Turns on auto-merge for Dependabot pull requests with patch, minor or
+# digest updates. GitHub merges them only after every required check passes
+# (the "protect main" ruleset), and Dependabot waits 7 days before it
+# proposes a new version (cooldown in .github/dependabot.yml).
+#
+# Major updates are left for a human to review.
+on: pull_request
+
+permissions: {}
+
+jobs:
+  auto-merge:
+    name: Enable auto-merge
+    # The PR author, not github.actor: a human re-running the job must not
+    # make a non-Dependabot PR auto-merge.
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'hayone1/external-dns-hostinger-webhook'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - name: Read the update type
+        id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+      - name: Enable auto-merge
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"

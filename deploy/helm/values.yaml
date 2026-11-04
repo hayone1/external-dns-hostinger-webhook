@@ -65,6 +65,11 @@ extraArgs:
 sources:
   - service
   - ingress
+  # Gateway API routes work too. Turn them on only if the Gateway API CRDs
+  # are installed in your cluster:
+  # - gateway-httproute
+  # - gateway-grpcroute
+  # - gateway-tlsroute
 
 # Each loop costs about two API requests per zone. Once a minute is plenty,
 # and leaves room for your other Hostinger tools, which share the same
