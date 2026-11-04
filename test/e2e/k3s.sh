@@ -21,11 +21,11 @@
 # and deletes both at the end. It never touches other namespaces.
 #
 # Environment:
-#   K3S_HOST            SSH target, for example root@203.0.113.5 (required).
+#   K3S_HOST            SSH target, for example root@your-server (required).
 #                       Keep it in your .env, not in the repository.
 #   K3S_TUNNEL_PORT     local port for the API tunnel (default 16443)
 #   K3S_API             skip the tunnel and use this API address instead,
-#                       for example https://203.0.113.5:6443
+#                       for example https://your-server:6443
 #   K3S_TLS_SERVER_NAME name from the API certificate, needed with K3S_API
 #                       when the certificate does not list that address
 #   E2E_SKIP_BUILD      "true" to reuse images you built before (make e2e-images)
@@ -38,7 +38,7 @@ set -euo pipefail
 # Values from a .env file with Windows line endings end in \r.
 clean() { printf '%s' "${1:-}" | tr -d '\r'; }
 K3S_HOST=$(clean "${K3S_HOST:-}")
-: "${K3S_HOST:?set K3S_HOST to the SSH target of the k3s server, for example root@203.0.113.5}"
+: "${K3S_HOST:?set K3S_HOST to the SSH target of the k3s server, for example root@your-server}"
 PORT=$(clean "${K3S_TUNNEL_PORT:-16443}")
 API=$(clean "${K3S_API:-}")
 TLS_NAME=$(clean "${K3S_TLS_SERVER_NAME:-}")
