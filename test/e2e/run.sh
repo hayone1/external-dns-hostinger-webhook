@@ -59,7 +59,7 @@ esac
 # A token copied from a file with Windows line endings ends in \r.
 HOSTINGER_API_TOKEN=$(printf '%s' "$HOSTINGER_API_TOKEN" | tr -d '\r\n ')
 
-ZONE=$(echo "$E2E_ZONE" | tr '[:upper:]' '[:lower:]')
+ZONE=$(echo "$E2E_ZONE" | tr -d '\r' | tr '[:upper:]' '[:lower:]')
 ID=${E2E_ID:-$(od -An -N4 -tx4 /dev/urandom | tr -dc '0-9a-f')}
 BASE="e2e-${ID}.${ZONE}"
 NS="extdns-e2e-${ID}"

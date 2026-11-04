@@ -6,6 +6,12 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `make e2e-k3s` (`test/e2e/k3s.sh`) runs the end-to-end test on a remote
+  k3s server over SSH, for maintainers who want the run off their own
+  machine. CI keeps using kind.
+
 ## [0.1.0] - 2026-11-04
 
 First release.

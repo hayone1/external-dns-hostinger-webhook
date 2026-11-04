@@ -68,6 +68,10 @@ e2e-images: ## Build the webhook and fake Hostinger API images for the end-to-en
 e2e: ## Run the end-to-end test (E2E_MODE=fake by default, or real). See docs/development.md.
 	./test/e2e/run.sh
 
+.PHONY: e2e-k3s
+e2e-k3s: ## Run the end-to-end test on a remote k3s server (set K3S_HOST in .env). Started by hand, never in CI.
+	@set -a; [ -f .env ] && . ./.env; set +a; ./test/e2e/k3s.sh
+
 .PHONY: clean
 clean: ## Remove build output.
 	rm -rf bin dist cover.out

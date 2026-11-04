@@ -94,15 +94,42 @@ set -a; . ./.env; set +a
 E2E_MODE=real make e2e
 ```
 
-On k3s, load an image with:
-
-```sh
-docker save external-dns-hostinger-webhook:e2e | ssh root@your-server k3s ctr -n k8s.io images import -
-```
-
 Every name the test creates is under `e2e-<random>.<zone>`, and it removes
 everything when it ends, even when it fails. The real mode also asks
 Hostinger's name servers for the new records with `dig`.
+
+### On a remote k3s server
+
+GitHub always runs the test on kind. On your own machine, kind is fine too.
+If you want more compute, or want to keep test clusters off your computer,
+run the same test on a k3s server you control. You start it by hand; it
+never runs in CI.
+
+You need SSH access with a key (`ssh root@your-server` works without a
+password prompt), and docker, `kubectl`, `helm`, `curl` and `jq` on your
+machine. The server only needs k3s.
+
+```sh
+echo 'K3S_HOST=root@your-server' >> .env   # once
+make e2e-k3s                               # fake Hostinger API
+E2E_MODE=real E2E_ZONE=example.com make e2e-k3s   # real API, token from .env
+```
+
+`test/e2e/k3s.sh` builds the images on your machine, copies them to the
+server (`docker save | ssh ... k3s ctr images import`), reaches the
+Kubernetes API through an SSH tunnel (port 6443 does not need to be open),
+and runs `run.sh` there. When it ends, it closes the tunnel and removes the
+copied images from the server. `run.sh` only creates its own
+`extdns-e2e-<id>` namespace and deletes it at the end, so other workloads on
+the server are not touched.
+
+| Variable | What it does |
+|---|---|
+| `K3S_HOST` | SSH target of the server (required). Keep it in `.env`. |
+| `K3S_TUNNEL_PORT` | local port for the API tunnel (default `16443`) |
+| `K3S_API` | use this API address instead of the tunnel |
+| `K3S_TLS_SERVER_NAME` | name from the API certificate, if `K3S_API` is an address the certificate does not list |
+| `E2E_SKIP_BUILD=true` | reuse images from `make e2e-images` |
 
 ### Options
 
