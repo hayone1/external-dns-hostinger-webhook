@@ -16,9 +16,12 @@ Pushing a tag like `v0.2.0` on `main` starts `.github/workflows/release.yml`:
    with these tags: `0.2.0`, `v0.2.0`, `0.2`, `latest` (only for normal
    releases), `sha-<commit>`. From `v1.0.0` on, a `1` tag is added too.
 5. **Signs** both images with cosign (keyless, through GitHub's OIDC token).
-6. **Attaches** an SBOM and build provenance, and a GitHub attestation.
+6. **Attaches** an SBOM and build provenance, a GitHub attestation, and
+   SLSA Build Level 3 provenance from the isolated
+   [SLSA generator](https://github.com/slsa-framework/slsa-github-generator).
 7. **Scans** the image with Trivy and uploads the results to the Security tab.
-8. **Creates** the GitHub release with notes.
+8. **Creates** the GitHub release with notes and `external-dns-values.yaml`:
+   `deploy/helm/values.yaml` with the image pinned by digest.
 9. **Updates** the Docker Hub description from [dockerhub.md](dockerhub.md),
    if the optional token is set.
 
@@ -70,6 +73,25 @@ Do this when the token expires or leaks.
 3. Delete the old token on Docker Hub.
 4. If a release failed at **Copy to Docker Hub**, re-run the failed jobs:
    `gh run rerun <run-id> --failed`.
+
+## Automation
+
+| Workflow | When | What it does |
+|---|---|---|
+| `dependabot-auto-merge.yml` | every Dependabot PR | turns on auto-merge for patch, minor and digest updates. GitHub merges them only after all required checks pass. Major updates wait for a human. |
+| `upstream-watch.yml` | Mondays | opens an issue when the Hostinger API's OpenAPI file changes in the parts the client uses (`hack/hostinger-api.json`), or when a newer external-dns chart than `hack/external-dns-chart.version` is out; scans the newest image with Trivy |
+| `ci.yml`, job "Base images" | every PR | checks that base images are pinned by digest and that the distroless image is signed |
+
+Releases are never automatic: a maintainer decides when to tag, after the
+real-mode end-to-end test.
+
+### When the Hostinger API changed
+
+1. Read the issue's diff.
+2. Probe the real API (the `probe-hostinger-api` skill) if behavior may
+   have changed.
+3. Update `internal/hostinger`, the fake and `docs/hostinger-api.md`.
+4. Refresh the snapshot: `hack/hostinger-api-snapshot.sh > hack/hostinger-api.json`.
 
 ## Versioning
 

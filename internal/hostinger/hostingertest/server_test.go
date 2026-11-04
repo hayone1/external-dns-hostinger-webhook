@@ -105,6 +105,19 @@ func TestNames(t *testing.T) {
 	}
 }
 
+func TestNSAndSOAWrites(t *testing.T) {
+	s := newFake(t)
+	for _, body := range []string{
+		`{"zone":[{"name":"sub","type":"NS","ttl":300,"records":[{"content":"ns1.example.net"}]}]}`,
+		`{"zone":[{"name":"@","type":"SOA","ttl":300,"records":[{"content":"ns1.example.net. a.example.net. 1 2 3 4 5"}]}]}`,
+	} {
+		code, b := put(t, s, body)
+		if code != 422 || !strings.Contains(b, "Resource record type is invalid, unsupported or immutable!") {
+			t.Errorf("%s: %d %s", body, code, b)
+		}
+	}
+}
+
 func TestTTL(t *testing.T) {
 	s := newFake(t)
 	for ttl, want := range map[string]string{"59": "at least 60 seconds", "86401": "cannot exceed 86400 seconds"} {

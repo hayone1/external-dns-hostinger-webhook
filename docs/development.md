@@ -24,6 +24,7 @@ internal/metrics/                  Prometheus metrics
 test/integration/                  real external-dns code against the webhook and the fake API
 test/e2e/                          real cluster test (run.sh) and the fake Hostinger API image
 deploy/                            example Helm values and Secret
+hack/                              API snapshot, tested chart version, base image check
 ```
 
 ## Three levels of tests

@@ -33,7 +33,7 @@
 #                       mode, false in real mode (only use it on a zone nothing else manages).
 #   E2E_ID              unique run ID (default: random)
 #   E2E_KEEP            "true" to keep the namespace for debugging
-#   E2E_CHART_VERSION   external-dns chart version (default 1.23.0)
+#   E2E_CHART_VERSION   external-dns chart version (default: hack/external-dns-chart.version)
 #   E2E_FAKE_PORT       local port for the fake API (default 18080)
 #   KUBECONFIG          cluster to use (the current context is used)
 #
@@ -68,8 +68,10 @@ OWNER="e2e-${ID}"
 IMAGE=${E2E_IMAGE:-external-dns-hostinger-webhook:e2e}
 FAKE_IMAGE=${E2E_FAKE_IMAGE:-fake-hostinger:e2e}
 IFS=, read -r IP1 IP2 <<<"${E2E_TARGET_IPS:-1.1.1.1,1.0.0.1}"
-CHART_VERSION=${E2E_CHART_VERSION:-1.23.0}
 HERE=$(cd "$(dirname "$0")" && pwd)
+# hack/external-dns-chart.version is the one place the tested chart version
+# lives. The weekly "Upstream watch" workflow says when a newer one is out.
+CHART_VERSION=${E2E_CHART_VERSION:-$(tr -d '[:space:]' <"$HERE/../../hack/external-dns-chart.version")}
 TIMEOUT=300
 PF_PID=""
 

@@ -72,10 +72,18 @@ history. Or use a tool like
 
 ## Step 4: Install external-dns with the webhook
 
-Download [deploy/helm/values.yaml](../deploy/helm/values.yaml). Change the
-lines marked `CHANGE ME`:
+Download the values file. Two options:
 
-- `tag`: the webhook version, for example `0.1.0`
+- **Recommended:** `external-dns-values.yaml` from the
+  [newest release](https://github.com/hayone1/external-dns-hostinger-webhook/releases/latest).
+  It is the example below with the image pinned by digest, so you run
+  exactly the image that release built.
+- [deploy/helm/values.yaml](../deploy/helm/values.yaml) from the repository.
+
+Change the lines marked `CHANGE ME`:
+
+- `tag`: the webhook version, for example `0.1.0` (already set in the
+  release's file)
 - `DOMAIN_FILTER` and `domainFilters`: your domain
 - `txtOwnerId`: any name for this cluster, for example `prod-cluster`. If two
   clusters write to the same zone, each needs its own name.
@@ -125,6 +133,10 @@ spec:
 
 For an Ingress, external-dns uses the hosts in the Ingress rules, so no
 annotation is needed.
+
+For Gateway API routes (HTTPRoute, GRPCRoute, TLSRoute), add for example
+`gateway-httproute` to `sources` in your values file. The values file has
+the lines ready; the Gateway API CRDs must be installed in your cluster.
 
 If your load balancer only has a private IP (common on a single server or
 home lab), tell external-dns your public IP:
@@ -189,6 +201,17 @@ cosign verify ghcr.io/hayone1/external-dns-hostinger-webhook:0.1.0 \
 The same works for `docker.io/hayone/external-dns-hostinger-webhook:0.1.0`.
 cosign 2.x says `no signatures found`, because it cannot read the newer
 signature format. Upgrade cosign.
+
+From v0.2.0 on, the image also has
+[SLSA Build Level 3](https://slsa.dev/spec/v1.0/levels) provenance: a signed
+record of where and how it was built. Check it with
+[slsa-verifier](https://github.com/slsa-framework/slsa-verifier) and the
+digest from the release notes:
+
+```sh
+slsa-verifier verify-image ghcr.io/hayone1/external-dns-hostinger-webhook@sha256:<digest> \
+  --source-uri github.com/hayone1/external-dns-hostinger-webhook --source-tag v0.2.0
+```
 
 ## Without Helm
 

@@ -1,0 +1,131 @@
+name: Upstream watch
+
+# Weekly checks on things that change outside this repository:
+#
+#   - Hostinger's API: the parts of the OpenAPI file the client depends on
+#     (hack/hostinger-api-snapshot.sh) no longer match hack/hostinger-api.json.
+#     Opens or updates an issue with the diff.
+#   - external-dns: a newer Helm chart than hack/external-dns-chart.version.
+#     Opens or updates an issue.
+#   - The newest published image: Trivy scan, results go to the Security tab.
+#
+# It never uses a Hostinger account: the OpenAPI file is public.
+on:
+  schedule:
+    - cron: "17 6 * * 1" # every Monday
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  hostinger-api:
+    name: Hostinger API drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compare the API with the snapshot
+        id: diff
+        run: |
+          set -euo pipefail
+          hack/hostinger-api-snapshot.sh > "$RUNNER_TEMP/current.json"
+          if diff -u hack/hostinger-api.json "$RUNNER_TEMP/current.json" > "$RUNNER_TEMP/api.diff"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Open or update the issue
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          {
+            echo "The parts of https://developers.hostinger.com/openapi/openapi.json that this webhook uses changed."
+            echo
+            echo "1. Read the diff below."
+            echo "2. If the change affects the webhook, probe the real API (see the \`probe-hostinger-api\` skill), then update \`internal/hostinger\`, the fake in \`internal/hostinger/hostingertest\` and \`docs/hostinger-api.md\`."
+            echo "3. Refresh the snapshot: \`hack/hostinger-api-snapshot.sh > hack/hostinger-api.json\`."
+            echo
+            echo '```diff'
+            head -c 60000 "$RUNNER_TEMP/api.diff"
+            echo '```'
+          } > "$RUNNER_TEMP/body.md"
+          gh label create upstream-api --color D93F0B --description "Hostinger API changed" --repo "$REPO" 2>/dev/null || true
+          number=$(gh issue list --repo "$REPO" --label upstream-api --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --repo "$REPO" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh issue create --repo "$REPO" --title "Hostinger API changed" --label upstream-api --body-file "$RUNNER_TEMP/body.md"
+          fi
+
+  external-dns-chart:
+    name: external-dns chart version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compare with the newest chart
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          pinned=$(tr -d '[:space:]' < hack/external-dns-chart.version)
+          latest=$(curl -fsSL --retry 3 https://kubernetes-sigs.github.io/external-dns/index.yaml |
+            yq -r '.entries["external-dns"][0].version')
+          echo "pinned $pinned, newest $latest"
+          [ "$latest" != "$pinned" ] || exit 0
+          title="external-dns chart $latest is out"
+          body="Change \`hack/external-dns-chart.version\` from $pinned to $latest in a pull request. CI then runs the end-to-end test with the new chart. Also run \`E2E_MODE=real make e2e-k3s\` once, and update the tested version in the docs."
+          gh label create upstream-external-dns --color 1D76DB --description "New external-dns release" --repo "$REPO" 2>/dev/null || true
+          number=$(gh issue list --repo "$REPO" --label upstream-external-dns --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --repo "$REPO" --title "$title" --body "$body"
+          else
+            gh issue create --repo "$REPO" --title "$title" --label upstream-external-dns --body "$body"
+          fi
+
+  image-scan:
+    name: Scan the newest image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - name: Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/hayone1/external-dns-hostinger-webhook:latest
+          format: sarif
+          output: trivy.sarif
+          ignore-unfixed: true
+      - uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-latest-image

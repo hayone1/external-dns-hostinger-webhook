@@ -154,6 +154,31 @@ func TestExtraZones(t *testing.T) {
 	}
 }
 
+func TestInactiveDomainsAreSkipped(t *testing.T) {
+	api, p := setup(t, Options{})
+	api.AddBareZone("expired.org")
+	api.SetDomainStatus("expired.org", "expired")
+	_, all, err := p.Zones(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(all, ",") != "example.com" {
+		t.Fatalf("an expired domain must not be read: %v", all)
+	}
+
+	// Naming it in DOMAIN_FILTER still manages it.
+	api2, p3 := setup(t, Options{ExtraZones: []string{"expired.org"}})
+	api2.AddBareZone("expired.org")
+	api2.SetDomainStatus("expired.org", "expired")
+	_, all, err = p3.Zones(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(all, ",") != "example.com,expired.org" {
+		t.Fatalf("a domain named in DOMAIN_FILTER must be kept: %v", all)
+	}
+}
+
 func TestReadErrorsAreNotHidden(t *testing.T) {
 	api, p := setup(t, Options{})
 	api.Inject(hostingertest.Fault{Method: "GET", Path: "/zones/", Status: 500, Count: 10})

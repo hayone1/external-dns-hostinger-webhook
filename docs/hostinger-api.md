@@ -43,6 +43,11 @@ and retries HTTP 429 and 5xx with growing pauses.
 
 ## Domains and zones
 
+The domain list has a `status` per domain: `active`, `expired`,
+`pending_setup`, `suspended` and others. An expired domain can still have
+a readable zone. The webhook only uses `active` domains, unless a domain is
+named in `DOMAIN_FILTER`.
+
 | Call | What we saw |
 |---|---|
 | `GET /api/domains/v1/portfolio` | Every domain of the account, including expired ones. An unclaimed free domain has `"domain": null`. There is no "list DNS zones" call, so the webhook uses this list. |
@@ -143,6 +148,11 @@ would otherwise be `extdns-a.*.wild.example.com`.
 | CNAME with two values | HTTP 422 `RRset ... IN CNAME has more than one record` |
 | CNAME next to any other type on the same name, either way round | HTTP 422 `RRset ... IN CNAME must not be used with any other type on the same name.` |
 | Lower-case type (`a`) | HTTP 422 `The selected zone.0.type is invalid.` |
+| NS below the apex (`sub` NS `ns1.example.net`) | HTTP 422 `[DNS:4005] Resource record type is invalid, unsupported or immutable! Supported types: A, AAAA, ALIAS, CNAME, MX, TXT, SRV, CAA.` So you cannot delegate a sub-domain through the API. |
+| SOA anywhere | HTTP 422, same message |
+| NS at the apex | `/validate` says yes. Nobody tried a real write: it would change the domain's delegation. The webhook never sends NS or SOA. |
+| `overwrite: false` on a set that does not exist | HTTP 200, the set is created |
+| `overwrite: false` with a value that is already there, with or without quotes | HTTP 422 `[DNS:4008]` |
 
 ## Deleting: `DELETE /api/dns/v1/zones/{domain}`
 
@@ -184,8 +194,9 @@ tests fail if there is one.
   to show everywhere, and a **deleted** one too. During that time different
   servers gave different answers. The name servers are anycast and cache each
   answer for its TTL.
-- A name that was asked for before it existed can stay "not found" for up to
-  600 seconds (the SOA negative TTL).
+- A name that was asked for before it existed took **80 seconds** to show
+  on both name servers (the SOA allows up to 600 seconds of negative
+  caching).
 
 So after a change, wait at least the record's TTL before you conclude that
 something is wrong.
@@ -193,6 +204,16 @@ something is wrong.
 ## Concurrency
 
 There is no ETag, version or lock on a zone. Two writers can overwrite each
-other. The webhook keeps the time between reading a zone and writing it
-short, holds a lock so its own writes never overlap, and never replaces
-values it did not know about.
+other.
+
+Worse: **two writes to the same zone at the same moment can lose one of
+them, although both answer HTTP 200.** On 2026-11-04 we sent two
+`overwrite: false` appends to the same TXT set at once, three times. Twice
+both values arrived; once one value was missing.
+
+So the webhook never writes in parallel: one lock serializes every
+`ApplyChanges`, and each step sends its PUT and DELETE one after the other.
+It keeps the time between reading a zone and writing it short, and never
+replaces values it did not know about. Tools that write to the same zone at
+the same time (hPanel, other API users) can still race with it; the next
+external-dns loop repairs anything external-dns owns.

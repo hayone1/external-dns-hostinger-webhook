@@ -131,8 +131,8 @@ type zoneState struct {
 	sets []hostinger.RRset
 }
 
-// zones returns every zone the account can hold: the domain portfolio plus
-// the extra zones. The list is cached for a few minutes.
+// zones returns every zone the webhook may manage: the active domains of the
+// portfolio plus the extra zones. The list is cached for a few minutes.
 func (p *Provider) zones(ctx context.Context) ([]string, error) {
 	p.cacheMu.Lock()
 	if p.cached != nil && p.now().Sub(p.cachedAt) < p.cacheTTL {
@@ -150,6 +150,13 @@ func (p *Provider) zones(ctx context.Context) ([]string, error) {
 	for _, d := range domains {
 		if d.Domain == nil {
 			continue // an unclaimed free domain has no name yet
+		}
+		// Expired, suspended or pending domains are not served, so reading
+		// them only costs API calls. Name one in DOMAIN_FILTER to manage it
+		// anyway.
+		if d.Status != "" && d.Status != "active" {
+			p.log.Debug("skipping domain that is not active", "domain", *d.Domain, "status", d.Status)
+			continue
 		}
 		if name := normalizeName(*d.Domain); name != "" && !slices.Contains(all, name) {
 			all = append(all, name)

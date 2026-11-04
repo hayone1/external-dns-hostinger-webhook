@@ -35,7 +35,11 @@ flowchart LR
 
 - Creates, updates and deletes **A, AAAA, CNAME and TXT** records. **MX and
   SRV** work too, if you use them through external-dns.
-- Works with every domain in your Hostinger account, or only the ones you pick.
+- Works with every active domain in your Hostinger account, or only the
+  ones you pick. Domains registered elsewhere but hosted on Hostinger DNS
+  work too.
+- Works with every external-dns source: Services, Ingresses, Gateway API
+  routes and more.
 - Never deletes or replaces records it did not create. Records you made by
   hand in hPanel stay as they are, even when they share a name with one of
   yours.
@@ -47,7 +51,9 @@ flowchart LR
 - Never resets a zone, never restores a snapshot, and never touches
   Hostinger's own NS and SOA records.
 - Small and locked down: a small image with no shell, running as a non-root
-  user. Images for `amd64` and `arm64`, signed with cosign.
+  user. Images for `amd64` and `arm64`, signed with cosign, with an SBOM and
+  SLSA Build Level 3 provenance. Each release ships a values file with the
+  image pinned by digest.
 - Prometheus metrics and health checks built in.
 - Tested on every change in a real cluster with real external-dns, against a
   fake Hostinger API that copies the real one's quirks. Maintainers also test
@@ -143,7 +149,8 @@ These are already in the example values file. Here is why they matter:
   `external-dns.kubernetes.io/hostname`. The old `external-dns.alpha.kubernetes.io/`
   prefix only works if you start external-dns with `--enable-legacy-annotation-prefix`.
 - **No NS, PTR or ALIAS records**, and no weighted or geo routing (endpoints
-  with a `set-identifier` are skipped).
+  with a `set-identifier` are skipped). Hostinger's API refuses NS records
+  below the bare domain, so sub-domains cannot be delegated through it.
 - **CAA records:** the webhook can read and write them, but external-dns
   (v0.24) cannot track who owns a CAA record, so it never cleans them up.
   Manage CAA records by hand.

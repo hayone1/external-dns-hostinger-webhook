@@ -26,7 +26,11 @@
 //   - a domain that is not in the account is HTTP 403 [DNS:4002]
 //   - a bad token is HTTP 401 {"message":"Unauthenticated."}
 //   - every answer carries RateLimit headers
-//   - NS and SOA never show up in GET
+//   - NS and SOA never show up in GET; SOA and NS below the apex cannot be
+//     written (HTTP 422 [DNS:4005])
+//   - two writes to one zone at the same moment can lose one of them while
+//     both answer 200 (not copied here: the webhook never writes in
+//     parallel)
 //
 // Reset and snapshot restore are not implemented. A call to either is
 // counted (see ForbiddenCalls) and refused, so tests can prove the webhook
@@ -96,6 +100,7 @@ type Fault struct {
 type zone struct {
 	sets        []*RRset
 	inPortfolio bool
+	status      string
 	nameServers []string
 }
 
@@ -207,7 +212,17 @@ func (s *Server) addZone(name string, inPortfolio bool) {
 		return
 	}
 	s.order = append(s.order, name)
-	s.zones[name] = &zone{inPortfolio: inPortfolio, nameServers: []string{"ns1.dns-parking.com", "ns2.dns-parking.com"}}
+	s.zones[name] = &zone{inPortfolio: inPortfolio, status: "active", nameServers: []string{"ns1.dns-parking.com", "ns2.dns-parking.com"}}
+}
+
+// SetDomainStatus changes the status the portfolio reports for a domain,
+// for example "expired". Its zone can still be read and written.
+func (s *Server) SetDomainStatus(domain, status string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if z := s.zones[domain]; z != nil {
+		z.status = status
+	}
 }
 
 // SetNameServers changes the name servers the portfolio reports for a domain.
@@ -423,7 +438,7 @@ func (s *Server) listDomains(w http.ResponseWriter, _ *http.Request) {
 			continue
 		}
 		out = append(out, map[string]any{
-			"id": 1000 + i, "domain": name, "type": "domain", "status": "active",
+			"id": 1000 + i, "domain": name, "type": "domain", "status": s.zones[name].status,
 			"created_at": "2026-11-04T00:00:00Z", "expires_at": "2027-11-04T00:00:00Z",
 		})
 	}
@@ -509,6 +524,14 @@ func (s *Server) write(w http.ResponseWriter, r *http.Request, commit bool) {
 		}
 		if ttl > 86400 {
 			s.writeErrorLocked(w, http.StatusUnprocessableEntity, "[DNS:4005] Resource record TTL cannot exceed 86400 seconds!", nil)
+			return
+		}
+		// The real API refuses SOA everywhere and NS below the apex. NS at
+		// the apex passes /validate; nobody has tried a real write, because
+		// it would change the domain's delegation.
+		if it.Type == "SOA" || (it.Type == "NS" && rel != "@") {
+			s.writeErrorLocked(w, http.StatusUnprocessableEntity, "[DNS:4005] Resource record type is invalid, unsupported or immutable! "+
+				"Supported types: A, AAAA, ALIAS, CNAME, MX, TXT, SRV, CAA.", nil)
 			return
 		}
 		fqdn := fqdnOf(rel, name)

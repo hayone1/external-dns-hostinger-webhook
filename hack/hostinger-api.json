@@ -1,0 +1,727 @@
+{
+  "paths": {
+    "/api/dns/v1/snapshots/{domain}": {
+      "get": {
+        "operationId": "DNS_getDNSSnapshotListV1",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/domain"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DNS.V1.Snapshot.SnapshotCollection"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/dns/v1/snapshots/{domain}/{snapshotId}": {
+      "get": {
+        "operationId": "DNS_getDNSSnapshotV1",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/domain"
+          },
+          {
+            "$ref": "#/components/parameters/snapshotId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DNS.V1.Snapshot.SnapshotWithContentResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/dns/v1/snapshots/{domain}/{snapshotId}/restore": {
+      "post": {
+        "operationId": "DNS_restoreDNSSnapshotV1",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/domain"
+          },
+          {
+            "$ref": "#/components/parameters/snapshotId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Common.SuccessEmptyResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/dns/v1/zones/{domain}": {
+      "delete": {
+        "operationId": "DNS_deleteDNSRecordsV1",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/domain"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DNS.V1.Zone.DestroyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Common.SuccessEmptyResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/Common.Response.UnprocessableContentResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      },
+      "get": {
+        "operationId": "DNS_getDNSRecordsV1",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/domain"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DNS.V1.Zone.RecordCollection"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      },
+      "put": {
+        "operationId": "DNS_updateDNSRecordsV1",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/domain"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DNS.V1.Zone.UpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Common.SuccessEmptyResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/Common.Response.UnprocessableContentResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/dns/v1/zones/{domain}/reset": {
+      "post": {
+        "operationId": "DNS_resetDNSRecordsV1",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/domain"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DNS.V1.Zone.ResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Common.SuccessEmptyResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/Common.Response.UnprocessableContentResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/dns/v1/zones/{domain}/validate": {
+      "post": {
+        "operationId": "DNS_validateDNSRecordsV1",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/domain"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DNS.V1.Zone.UpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Common.SuccessEmptyResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/Common.Response.UnprocessableContentResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/domains/v1/portfolio": {
+      "get": {
+        "operationId": "domains_getDomainListV1",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Domains.V1.Domain.DomainCollection"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      },
+      "post": {
+        "operationId": "domains_purchaseNewDomainV1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Domains.V1.Portfolio.PurchaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Billing.V1.Order.OrderResource"
+                }
+              }
+            }
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Billing.V1.Order.PaymentProcessingResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/Common.Response.UnprocessableContentResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/domains/v1/portfolio/{domain}": {
+      "get": {
+        "operationId": "domains_getDomainDetailsV1",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/domain"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Domains.V1.Domain.DomainExtendedResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Common.Response.UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/Common.Response.ErrorResponse"
+          }
+        }
+      }
+    }
+  },
+  "schemas": {
+    "DNS.V1.Snapshot.SnapshotCollection": {
+      "items": {
+        "$ref": "#/components/schemas/DNS.V1.Snapshot.SnapshotResource"
+      },
+      "type": "array"
+    },
+    "DNS.V1.Snapshot.SnapshotResource": {
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "DNS.V1.Snapshot.SnapshotWithContentResource": {
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "snapshot": {
+          "$ref": "#/components/schemas/DNS.V1.Zone.RecordCollection"
+        }
+      },
+      "type": "object"
+    },
+    "DNS.V1.Zone.DestroyRequest": {
+      "properties": {
+        "filters": {
+          "items": {
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "A",
+                  "AAAA",
+                  "CNAME",
+                  "ALIAS",
+                  "MX",
+                  "TXT",
+                  "NS",
+                  "SOA",
+                  "SRV",
+                  "CAA"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "type"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "filters"
+      ],
+      "type": "object"
+    },
+    "DNS.V1.Zone.NameRecordCollection": {
+      "items": {
+        "$ref": "#/components/schemas/DNS.V1.Zone.NameRecordResource"
+      },
+      "type": "array"
+    },
+    "DNS.V1.Zone.NameRecordResource": {
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "is_disabled": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "DNS.V1.Zone.RecordCollection": {
+      "items": {
+        "$ref": "#/components/schemas/DNS.V1.Zone.RecordResource"
+      },
+      "type": "array"
+    },
+    "DNS.V1.Zone.RecordResource": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "records": {
+          "$ref": "#/components/schemas/DNS.V1.Zone.NameRecordCollection"
+        },
+        "ttl": {
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "A",
+            "AAAA",
+            "CNAME",
+            "ALIAS",
+            "MX",
+            "TXT",
+            "NS",
+            "SOA",
+            "SRV",
+            "CAA"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "DNS.V1.Zone.ResetRequest": {
+      "properties": {
+        "reset_email_records": {
+          "default": true,
+          "type": "boolean"
+        },
+        "sync": {
+          "default": true,
+          "type": "boolean"
+        },
+        "whitelisted_record_types": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "DNS.V1.Zone.UpdateRequest": {
+      "properties": {
+        "overwrite": {
+          "default": true,
+          "type": "boolean"
+        },
+        "zone": {
+          "items": {
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "records": {
+                "items": {
+                  "properties": {
+                    "content": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "content"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "ttl": {
+                "type": "integer"
+              },
+              "type": {
+                "enum": [
+                  "A",
+                  "AAAA",
+                  "CNAME",
+                  "ALIAS",
+                  "MX",
+                  "TXT",
+                  "NS",
+                  "SOA",
+                  "SRV",
+                  "CAA"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "records",
+              "type"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "zone"
+      ],
+      "type": "object"
+    },
+    "Domains.V1.Domain.DomainCollection": {
+      "items": {
+        "$ref": "#/components/schemas/Domains.V1.Domain.DomainResource"
+      },
+      "type": "array"
+    },
+    "Domains.V1.Domain.DomainExtendedResource": {
+      "properties": {
+        "60_days_lock_expires_at": {
+          "format": "date-time",
+          "nullable": true,
+          "type": "string"
+        },
+        "child_name_servers": {
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "domain_contacts": {
+          "properties": {
+            "admin_id": {
+              "type": "integer"
+            },
+            "billing_id": {
+              "type": "integer"
+            },
+            "owner_id": {
+              "type": "integer"
+            },
+            "tech_id": {
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "nullable": true,
+          "type": "string"
+        },
+        "is_lockable": {
+          "type": "boolean"
+        },
+        "is_locked": {
+          "type": "boolean"
+        },
+        "is_privacy_protected": {
+          "type": "boolean"
+        },
+        "is_privacy_protection_allowed": {
+          "type": "boolean"
+        },
+        "message": {
+          "nullable": true,
+          "type": "string"
+        },
+        "name_servers": {
+          "properties": {
+            "ns1": {
+              "type": "string"
+            },
+            "ns2": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "registered_at": {
+          "format": "date-time",
+          "nullable": true,
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "pending_setup",
+            "expired",
+            "requested",
+            "pending_verification",
+            "deleted",
+            "suspended",
+            "failed"
+          ],
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Domains.V1.Domain.DomainResource": {
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "domain": {
+          "nullable": true,
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "nullable": true,
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "pending_setup",
+            "expired",
+            "requested",
+            "pending_verification",
+            "deleted",
+            "suspended",
+            "failed"
+          ],
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "domain",
+            "free_domain",
+            "domain_transfer",
+            "free_domain_transfer"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "security": {
+    "apiToken": {
+      "scheme": "bearer",
+      "type": "http"
+    }
+  }
+}
