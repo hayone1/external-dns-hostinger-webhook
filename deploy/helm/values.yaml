@@ -13,7 +13,7 @@ provider:
   webhook:
     image:
       repository: ghcr.io/hayone1/external-dns-hostinger-webhook # or docker.io/hayone/external-dns-hostinger-webhook
-      tag: "0.1.0" # CHANGE ME: pin the version you tested (no "v")
+      tag: "0.2.0" # CHANGE ME: pin the version you tested (no "v")
     env:
       - name: HOSTINGER_API_TOKEN
         valueFrom: { secretKeyRef: { name: hostinger-credentials, key: api-token } }

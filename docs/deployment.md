@@ -82,7 +82,7 @@ Download the values file. Two options:
 
 Change the lines marked `CHANGE ME`:
 
-- `tag`: the webhook version, for example `0.1.0` (already set in the
+- `tag`: the webhook version, for example `0.2.0` (already set in the
   release's file)
 - `DOMAIN_FILTER` and `domainFilters`: your domain
 - `txtOwnerId`: any name for this cluster, for example `prod-cluster`. If two
@@ -193,12 +193,12 @@ workflow, install [cosign](https://docs.sigstore.dev/cosign/system_config/instal
 version 3 or newer and run:
 
 ```sh
-cosign verify ghcr.io/hayone1/external-dns-hostinger-webhook:0.1.0 \
+cosign verify ghcr.io/hayone1/external-dns-hostinger-webhook:0.2.0 \
   --certificate-identity-regexp '^https://github.com/hayone1/external-dns-hostinger-webhook/.github/workflows/release.yml@refs/tags/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-The same works for `docker.io/hayone/external-dns-hostinger-webhook:0.1.0`.
+The same works for `docker.io/hayone/external-dns-hostinger-webhook:0.2.0`.
 cosign 2.x says `no signatures found`, because it cannot read the newer
 signature format. Upgrade cosign.
 
