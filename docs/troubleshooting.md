@@ -14,7 +14,7 @@ You can also test your token on its own:
 
 ```sh
 docker run --rm -e HOSTINGER_API_TOKEN -e DOMAIN_FILTER=example.com \
-  ghcr.io/hayone1/external-dns-hostinger-webhook:0.1.0 check
+  ghcr.io/hayone1/external-dns-hostinger-webhook:0.2.0 check
 ```
 
 It prints `token ok`, the list of zones, and a warning for every domain that

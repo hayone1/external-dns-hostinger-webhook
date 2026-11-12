@@ -6,6 +6,16 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
+### Security
+
+- Built with Go 1.27.4. Go 1.27.3 had GO-2026-6859, a bug that can crash an
+  HTTP/1 server.
+- Updated `golang.org/x/net` to v0.62.0 (CVE-2026-78661, CVE-2026-97045).
+- The request log no longer contains line breaks from the request path, so
+  a crafted URL can't add fake lines to the log.
+
 ### Added
 
 - `make e2e-k3s` (`test/e2e/k3s.sh`) runs the end-to-end test on a remote
@@ -26,6 +36,7 @@ All notable changes are listed here. The format follows
 - Domains that are not active in the Hostinger account (expired, suspended,
   waiting for setup) are skipped, which saves API calls. Name one in
   `DOMAIN_FILTER` to manage it anyway.
+- Updated `golang.org/x/sync`.
 
 ## [0.1.0] - 2026-11-04
 
@@ -60,5 +71,6 @@ First release.
   commands.
 - Signed multi-arch images on Docker Hub and GHCR, with SBOM and provenance.
 
-[Unreleased]: https://github.com/hayone1/external-dns-hostinger-webhook/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/hayone1/external-dns-hostinger-webhook/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/hayone1/external-dns-hostinger-webhook/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/hayone1/external-dns-hostinger-webhook/releases/tag/v0.1.0

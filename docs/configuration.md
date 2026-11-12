@@ -112,10 +112,10 @@ The image has a few extra commands. They read the same environment variables.
 ```sh
 # Check the token, list the zones the webhook would manage, and warn about
 # domains that do not use Hostinger's name servers
-docker run --rm -e HOSTINGER_API_TOKEN ghcr.io/hayone1/external-dns-hostinger-webhook:0.1.0 check
+docker run --rm -e HOSTINGER_API_TOKEN ghcr.io/hayone1/external-dns-hostinger-webhook:0.2.0 check
 
 # Print the version
-docker run --rm ghcr.io/hayone1/external-dns-hostinger-webhook:0.1.0 version
+docker run --rm ghcr.io/hayone1/external-dns-hostinger-webhook:0.2.0 version
 ```
 
 `healthcheck` is used by the image's Docker `HEALTHCHECK` and checks the local
