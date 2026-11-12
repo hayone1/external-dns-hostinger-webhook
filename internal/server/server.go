@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -84,7 +85,9 @@ func logRequests(next http.Handler, log *slog.Logger) http.Handler {
 		if rec.status >= 500 {
 			level = slog.LevelWarn
 		}
-		log.Log(r.Context(), level, "webhook request", "method", r.Method, "path", r.URL.Path,
+		// Drop line breaks so a crafted path cannot forge log lines.
+		path := strings.NewReplacer("\n", "", "\r", "").Replace(r.URL.Path)
+		log.Log(r.Context(), level, "webhook request", "method", r.Method, "path", path,
 			"status", rec.status, "duration", time.Since(start))
 	})
 }

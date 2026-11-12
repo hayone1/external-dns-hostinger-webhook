@@ -70,7 +70,9 @@ func logRequests(next http.Handler, log *slog.Logger) http.Handler {
 		rec := &status{ResponseWriter: w, code: http.StatusOK}
 		next.ServeHTTP(rec, r)
 		if r.URL.Path != "/healthz" {
-			log.Info("request", "method", r.Method, "path", r.URL.Path, "status", rec.code)
+			// Drop line breaks so a crafted path cannot forge log lines.
+			path := strings.NewReplacer("\n", "", "\r", "").Replace(r.URL.Path)
+			log.Info("request", "method", r.Method, "path", path, "status", rec.code)
 		}
 	})
 }
